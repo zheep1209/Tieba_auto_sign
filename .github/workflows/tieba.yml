@@ -18,10 +18,10 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Install Chrome (Chromium)
+      - name: Install Chromium
         run: |
           sudo apt-get update
-          sudo apt-get install -y chromium-browser
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
 
       - name: Install dependencies
         run: |

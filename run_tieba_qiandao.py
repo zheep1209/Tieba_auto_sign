@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     co = ChromiumOptions()
     co.headless(True)
-    co.no_sandbox(True)
+    co.set_argument('--no-sandbox')
     co.disable_gpu(True)
     co.set_argument("--disable-dev-shm-usage")
     co.set_argument("--disable-blink-features=AutomationControlled")

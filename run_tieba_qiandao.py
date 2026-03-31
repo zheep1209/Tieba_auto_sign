@@ -1,6 +1,9 @@
+import os
+# 防止 DrissionPage 自动下载浏览器导致卡死
+os.environ["DP_NO_BROWSER_DOWNLOAD"] = "1"
+
 from DrissionPage import ChromiumOptions, ChromiumPage
 import json
-import os
 import time
 import requests
 
@@ -45,11 +48,10 @@ if __name__ == "__main__":
 
     co = ChromiumOptions()
     co.headless(True)
-    co.set_argument('--no-sandbox')
     co.disable_gpu(True)
-    co.set_argument("--disable-dev-shm-usage")
-    co.set_argument("--disable-blink-features=AutomationControlled")
-    co.set_argument("--no-sandbox")
+    co.set_argument('--no-sandbox')
+    co.set_argument('--disable-dev-shm-usage')
+    co.set_argument('--disable-blink-features=AutomationControlled')
 
     page = ChromiumPage(co)
 
@@ -176,7 +178,6 @@ if __name__ == "__main__":
                 print("Server酱通知发送成功")
             else:
                 print(f"通知失败，状态码：{req.status_code}")
-                print(api)
 
         except Exception as e:
             print(f"通知发送异常：{e}")

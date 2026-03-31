@@ -1,65 +1,145 @@
-import os
+from DrissionPage import ChromiumOptions, ChromiumPage
 import json
+import os
+import shutil
 import time
-from DrissionPage import ChromiumPage, ChromiumOptions
+import requests
 
-print("程序开始运行")
 
-# 从环境变量读取 cookies
-cookies_str = os.environ.get("TIEBA_COOKIES")
+def read_cookie():
+    """读取 cookie"""
+    if "TIEBA_COOKIES" in os.environ:
+        try:
+            return json.loads(os.environ["TIEBA_COOKIES"])
+        except:
+            print("Cookie解析失败")
+            return []
+    else:
+        print("未配置贴吧Cookie")
+        return []
 
-if not cookies_str:
-    print("未检测到 cookies，退出")
-    exit(1)
 
-cookies = json.loads(cookies_str)
+if __name__ == "__main__":
 
-print("正在启动浏览器...")
+    print("程序开始运行")
 
-# 浏览器配置
-co = ChromiumOptions()
+    notice = ""
 
-# GitHub Actions 必须加这些参数
-co.set_argument('--no-sandbox')
-co.set_argument('--disable-dev-shm-usage')
-co.set_argument('--disable-gpu')
-co.set_argument('--headless=new')
+    print("正在启动浏览器...")
 
-page = ChromiumPage(co)
+    co = ChromiumOptions()
 
-print("浏览器启动成功")
+    co.headless(True)
+    co.set_argument("--no-sandbox")
+    co.set_argument("--disable-dev-shm-usage")
+    co.set_argument("--disable-gpu")
 
-# 打开贴吧
-page.get("https://tieba.baidu.com")
+    chromium_path = shutil.which("chromium-browser")
+    if chromium_path:
+        co.set_browser_path(chromium_path)
 
-print("正在注入 cookies...")
+    page = ChromiumPage(co)
 
-# 添加 cookies
-for cookie in cookies:
-    try:
-        page.set.cookies(cookie)
-    except:
-        pass
+    print("浏览器启动成功")
 
-# 刷新页面
-page.refresh()
+    page.get("https://tieba.baidu.com")
 
-time.sleep(3)
+    print("正在注入 cookies...")
 
-print("开始签到...")
+    cookies = read_cookie()
+    if cookies:
+        page.set.cookies(cookies)
 
-# 进入贴吧首页
-page.get("https://tieba.baidu.com/index.html")
+    page.refresh()
 
-time.sleep(5)
+    time.sleep(5)
 
-# 点击一键签到
-try:
-    page.ele("text=一键签到").click()
-    print("点击一键签到成功")
-except:
-    print("未找到一键签到按钮")
+    print("开始签到...")
 
-time.sleep(5)
+    yeshu = 1
+    count = 0
+    over = False
 
-print("签到完成")
+    while not over:
+
+        print(f"正在处理第 {yeshu} 页")
+
+        page.get(f"https://tieba.baidu.com/i/i/forum?&pn={yeshu}")
+
+        time.sleep(5)
+
+        for i in range(1, 30):
+
+            try:
+                tieba = page.eles('css:.forum_table a')[i]
+            except:
+                over = True
+                break
+
+            try:
+                name = tieba.text
+                url = tieba.link
+            except:
+                continue
+
+            print(f"进入 {name} 吧")
+
+            try:
+                page.get(url)
+            except:
+                continue
+
+            time.sleep(3)
+
+            try:
+
+                btn = page.ele("text=签到")
+
+                if btn:
+                    btn.click()
+                    print(f"{name} 签到成功")
+                    notice += f"{name} 签到成功\n"
+                else:
+                    print(f"{name} 已签到")
+                    notice += f"{name} 已签到\n"
+
+            except:
+                print(f"{name} 签到失败")
+                notice += f"{name} 签到失败\n"
+
+            count += 1
+
+            page.back()
+
+            time.sleep(2)
+
+        yeshu += 1
+
+    print("签到完成")
+
+    print("准备发送通知")
+
+    sendkey = os.environ.get("SendKey")
+
+    if sendkey:
+
+        api = f"https://sctapi.ftqq.com/{sendkey}.send"
+
+        data = {
+            "title": "贴吧签到完成",
+            "desp": notice
+        }
+
+        try:
+
+            resp = requests.post(api, data=data)
+
+            print("通知发送成功")
+
+        except Exception as e:
+
+            print("通知发送失败", e)
+
+    else:
+
+        print("未配置Server酱")
